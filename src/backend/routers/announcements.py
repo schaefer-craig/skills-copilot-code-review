@@ -17,17 +17,22 @@ router = APIRouter(
 )
 
 
+# Constants
+DATE_PATTERN = r'^\d{4}-\d{2}-\d{2}$'
+
 # Pydantic models for request bodies
-class AnnouncementCreate(BaseModel):
+class AnnouncementBase(BaseModel):
     message: str = Field(..., max_length=500, description="Announcement message (max 500 characters)")
-    expiration_date: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$', description="Expiration date in YYYY-MM-DD format")
-    start_date: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$', description="Optional start date in YYYY-MM-DD format")
+    expiration_date: str = Field(..., pattern=DATE_PATTERN, description="Expiration date in YYYY-MM-DD format")
+    start_date: Optional[str] = Field(None, pattern=DATE_PATTERN, description="Optional start date in YYYY-MM-DD format")
 
 
-class AnnouncementUpdate(BaseModel):
-    message: str = Field(..., max_length=500, description="Announcement message (max 500 characters)")
-    expiration_date: str = Field(..., pattern=r'^\d{4}-\d{2}-\d{2}$', description="Expiration date in YYYY-MM-DD format")
-    start_date: Optional[str] = Field(None, pattern=r'^\d{4}-\d{2}-\d{2}$', description="Optional start date in YYYY-MM-DD format")
+class AnnouncementCreate(AnnouncementBase):
+    pass
+
+
+class AnnouncementUpdate(AnnouncementBase):
+    pass
 
 
 # Dependency for authentication
