@@ -858,6 +858,16 @@ document.addEventListener("DOMContentLoaded", () => {
   // ============================================================================
   // ANNOUNCEMENTS MANAGEMENT
   // ============================================================================
+  // This section manages school-wide announcements:
+  // - Fetches active announcements from the backend and displays them in the
+  //   public banner area on page load.
+  // - Provides an admin modal where authorized users can view all announcements,
+  //   create new ones, edit existing ones, and delete obsolete entries.
+  // - Keeps form state in sync with the currently edited announcement and
+  //   refreshes both the banner and admin list after any change.
+  // The logic below wires up DOM elements, registers event handlers for the
+  // modal and form, and coordinates the fetch calls used to persist changes.
+  // ============================================================================
 
   // Announcements elements
   const announcementsBannerContainer = document.getElementById("announcements-banner-container");
@@ -893,6 +903,8 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } catch (error) {
       console.error("Error fetching active announcements:", error);
+      // Display user-facing error message
+      announcementsBannerContainer.innerHTML = '<div class="announcement-banner error" role="alert">Unable to load announcements at this time. Please refresh the page to try again.</div>';
     }
   }
 
@@ -901,15 +913,17 @@ document.addEventListener("DOMContentLoaded", () => {
     if (!currentUser) return;
 
     try {
-      const response = await fetch(
-        `/announcements/all?username=${encodeURIComponent(currentUser.username)}`
-      );
+      const response = await fetch("/announcements/all", {
+        headers: {
+          "X-User-Name": currentUser.username,
+        },
+      });
       const announcements = await response.json();
 
       displayAnnouncementsInModal(announcements);
     } catch (error) {
       console.error("Error fetching announcements:", error);
-      announcementsAdminList.innerHTML = '<p class="error-message">Failed to load announcements.</p>';
+      announcementsAdminList.innerHTML = '<p class="error-message">Failed to load announcements. Please check your connection and try again.</p>';
     }
   }
 
@@ -1006,10 +1020,12 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     try {
-      const response = await fetch(
-        `/announcements/${announcementId}?username=${encodeURIComponent(currentUser.username)}`,
-        { method: "DELETE" }
-      );
+      const response = await fetch(`/announcements/${announcementId}`, {
+        method: "DELETE",
+        headers: {
+          "X-User-Name": currentUser.username,
+        },
+      });
 
       if (response.ok) {
         fetchAllAnnouncements();
@@ -1045,18 +1061,19 @@ document.addEventListener("DOMContentLoaded", () => {
 
       const method = editingAnnouncementId ? "PUT" : "POST";
 
-      const params = new URLSearchParams({
-        username: currentUser.username,
+      const body = {
         message: message,
         expiration_date: expirationDate,
-      });
+        start_date: startDate,
+      };
 
-      if (startDate) {
-        params.append("start_date", startDate);
-      }
-
-      const response = await fetch(`${url}?${params.toString()}`, {
+      const response = await fetch(url, {
         method: method,
+        headers: {
+          "Content-Type": "application/json",
+          "X-User-Name": currentUser.username,
+        },
+        body: JSON.stringify(body),
       });
 
       if (response.ok) {
